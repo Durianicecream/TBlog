@@ -1,18 +1,18 @@
-# 一个关于 this 绑定的题目解析
+# 一个关于 this 绑定的问题
 
 ## 题目内容
 
 请写出输出内容
 
-```
-var fullname='aaa';
+```js
+var fullname = "aaa";
 
 var obj = {
-  fullname: 'bbb',
+  fullname: "bbb",
   getFullName: () => this.fullname,
-  prop:{
-    fullname: 'ccc',
-    getFullName: function(){
+  prop: {
+    fullname: "ccc",
+    getFullName: function() {
       return this.fullname;
     }
   }
@@ -45,14 +45,14 @@ so easy，答案很简单
 
 第三，调用者是 window，所以是 aaa
 
-```
- 'ccc', 'bbb', 'aaa', 'bbb'
+```js
+"ccc", "bbb", "aaa", "bbb";
 ```
 
 等等，是不是太顺利了，果然翻开答案一看
 
-```
-'ccc', 'aaa', 'aaa', 'aaa'
+```js
+"ccc", "aaa", "aaa", "aaa";
 ```
 
 诶？箭头函数不是绑定父级作用域的么，难道出现了幻觉？为什么会绑定到 window 上呢？
@@ -67,7 +67,7 @@ so easy，答案很简单
 
 那么难道是说**只有函数才能创建作用域**，其他变量都是不行的么？我们来验证一下
 
-```
+```js
 var fullname = "aaa";
 
 var obj = {
@@ -80,7 +80,7 @@ var obj = {
 console.log(obj.prop.getFullName());
 
 function A() {
-  this.fullname = 'bbb';
+  this.fullname = "bbb";
 }
 var a = new A();
 a.getFullName = () => this.fullname;
@@ -93,13 +93,13 @@ console.log(a.getFullName());
 
 那么问题来了 this 的作用域在会随着上层函数的作用域变化而变化么？让我们来验证一下
 
-```
-var fullname='aaa';
+```js
+var fullname = "aaa";
 
 var obj = {
-  fullname: 'bbb',
-  getFullName: function () {
-      return (() => this.fullname)()
+  fullname: "bbb",
+  getFullName: function() {
+    return (() => this.fullname)();
   }
 };
 

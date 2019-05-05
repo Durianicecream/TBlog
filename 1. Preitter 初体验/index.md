@@ -31,21 +31,21 @@ Prettier 会检查配置文件并自动读取文件中的配置，我们只需�
 
 下面是愉快使用的相关配置
 
-```
-editor.formatOnPaste: Boolean 粘贴时自动格式化
+```ts
+editor.formatOnPaste: Boolean //粘贴时自动格式化
 
-editor.formatOnSave: Boolean 保存时自动格式化
+editor.formatOnSave: Boolean //保存时自动格式化
 
-editor.formatOnType: Boolean 键入一行后是否格式化
+editor.formatOnType: Boolean //键入一行后是否格式化
 
-editor.formatOnSaveTimeout: Int 保存后延时格式化
+editor.formatOnSaveTimeout: Int //保存后延时格式化
 ```
 
 ### 可配置的属性
 
 分享一下我的配置文件
 
-```
+```js
 module.exports = {
 // tab缩进大小,默认为2
 tabWidth: 2,

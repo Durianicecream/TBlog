@@ -18,11 +18,11 @@
 
 ## 技术原理
 
-SSR 技术随之应运而生，SSR 全称 Server Side Rendering 。以 React 为例，首先我们让 React 代码在服务器端先执行一次，使得用户下载的 HTML 已经包含了所有的页面展示内容，同时，由于 HTML 中已经包含了网页的所有内容，所以网页的 SEO 效果也会变的非常好。之后，我们让 React 代码在客户端再次执行，为 HTML 网页中的内容添加数据及事件的绑定，页面就具备了 React 的各种交互能力，可以参考下图。
+SSR 技术随之应运而生，SSR 全称 Server Side Rendering 。以 React 为例，首先我们让 React 代码在服务器端先执行一次，使得用户下载的 HTML 已经包含了所有的页面展示内容，同时，由于 HTML 中已经包含了网页的所有内容，所以网页的 SEO 效果也会变的非常好。之后，我们让 React 代码在客户端再次执行，为 HTML 网页中的内容添加数据及事件的绑定，页面就具备了 React 的各种交互能力，可参考下图。
 
-![image](./images/sequence.jpg)
+![image](https://durianicecream.github.io/TBlog/3.%20React%20SSR%20%E5%AE%9E%E8%B7%B5%E6%80%BB%E7%BB%93/images/sequence.jpg)
 
-核心 API：
+### 核心 API：
 
 服务端： renderToString() | ReactDOMServer.renderToNodeStream()
 
@@ -32,56 +32,58 @@ SSR 技术随之应运而生，SSR 全称 Server Side Rendering 。以 React 为
 
 根据服务端携带的标记更新 React 组件树，并附加事件响应
 
-## 劣势
+## SSR 的劣势
 
-技术改造成本相对较高，node 服务器资源不可控。所以我个人的建议是，要慎重考虑改造的成本和收益，如果收益没有那么明显，最好还是不要轻易尝试
+技术改造成本相对较高，node 服务器端的资源前端不太好驾驭。
 
-### 可用于替代的技术：
+所以我个人的建议，是要慎重评估改造的成本和收益，不推荐在生产项目中直接使用
+
+### 可用于替代的相关技术
 
 1. 骨架屏 Skeleton
+
 2. 预渲染 Pre-render
 
-   这项技术主要用来解决 SEO 的问题，适用于短时间内不会产生频繁变动的网页。可在服务器端判断 UA，针对爬虫单独返回提前抓取好的 html 内容，最好不要应用在用户环境。
+   这项技术主要用来解决 SEO 的问题，适用于短时间内不会产生频繁变动的网页。可在服务器端判断 UA，针对爬虫单独返回提前手动抓取好的 html 内容。
 
-3. next.js (全新项目)
-4. Jquery (弱交互页面)
+3. next.js (新的项目)
+
+4. Jquery (交互较少的页面)
 
 ## 项目结构
 
-```
+```js
 SSR Project
 ├─build
 |  ├─client
 |  ├─server
 |  └assets.json
 ├─node_modules
-├─public
+├─public  //公共资源
 ├─components
-├─webpack
+├─webpack  //打包配置
 |  ├─webpack.config.js
 |  ├─webpack.client.config.js
 |  └webpack.server.config.js
-├─server
+├─server  //服务端代码
 |  ├─App.jsx
 |  ├─router.js
 |  └index.js
-├─src
+├─src  //客户端代码
 |  ├─pages
 |  ├─App.jsx
 |  ├─router.js
 |  └index.js
 ├─index.html
-├─server.js // 服务端入口
+├─server.js  //服务端入口文件
 ├─package.json
 ```
 
 ## 基础配置
 
-首先要明确我们的目标，我们需要构建一个 node 服务对于页面请求提供渲染完整的 html。
+现在我们来从头搭建一个 React 服务端的渲染环境。先来看一下最终结果，下面是一份服务端返回 HTML 的 template 页面示例
 
-下面是一份 HTML 的 template 页面示例
-
-```
+```html
 <!DOCTYPE html>
 <html lang="cn">
   <head>
@@ -101,15 +103,15 @@ SSR Project
 </html>
 ```
 
-对比 SPA 项目其实做的改动很简单，就是把 root 节点内的 html 内容提前在服务端渲染成字符串拼接到模板内。我们采用 express 搭建 node 服务，server 端代码
+其实对比原有项目改动很简单，就是把 root 节点内的 html 内容提前在服务端渲染成字符串拼接到模板内。我们采用 express 搭建 node 服务。
 
 server/index.js
 
-```
+```js
 import React from 'react'
-import renderToString from 'reactdom/server'
+import renderToString from 'reactDOM/server'
 import express from 'express'
-import App from 'App'
+import App from './App'
 const app = express()
 
 app.get('/', (req, res, next) => {
@@ -118,6 +120,7 @@ app.get('/', (req, res, next) => {
   res.send(html)
 })
 
+// 导出启动服务的函数供入口文件调用
 export default startServer() => {
   app.listen('3000')
   return app
@@ -126,12 +129,12 @@ export default startServer() => {
 
 server.js
 
-```
- var startServer = require('./build/server/index.js')
- startServer()
+```js
+var startServer = require("./build/server/index.js");
+startServer();
 ```
 
-接下来我们要修改 webpack.server.config.js
+接下来我们要修改 webpack.server.config.js, 将 server 端代码编译成可以被 commonjs 模块系统识别的代码
 
 ```
 {
@@ -147,84 +150,100 @@ server.js
 
 ## 静态资源
 
-接下来我们处理静态资源。生产环境的 js bundle 和 css file 都是带有哈希值的，我们希望可以在 html 模板中直接引用到 build 生成的文件。其次图片资源我们也希望不要重复打包。
+接下来我们处理静态资源。生产环境的 js bundle 和 css file 都将会附带哈希值，如果按照现在这样简单地在服务端模板内引入`"/bundle.js"`是找不到文件的，正确的引入路径应该是`"/bundle\_[hash].js"`。那么下面我们来套路如何处理哈希同步的问题，其次图片资源我们也希望不要重复生成两份哈希。
 
-这里推荐使用 universal-webpack， 他通过帮我们修改 webpack 配置的方式, 帮我们解决上述的问题。插件在打包时会在 build 目录下生成 assets.json 资源定位文件，服务端我们引入这个文件处理即可。
+这里推荐使用 universal-webpack， 它通过帮我们修改 webpack 配置的方式，帮我们解决上述的问题。插件在打包时会在 build 目录下生成 assets.json 资源定位文件，服务端我们引入这个文件处理即可。
+
 [详细项目文档](https://github.com/catamphetamine/universal-webpack)
+
+assets.json
+
+```ts
+interface Chunks {
+  javascript: {
+    [scriptname: string]: string;
+  };
+  styles: {
+    [scriptname: string]: string;
+  };
+}
+```
 
 webpack.client.config.js
 
-```
+```js
 import { clientConfiguration } from 'universal-webpack'
 const webpackConfig = {...}
 
 return clientConfiguration(webpackConfig, {
     chunk_info_filename: 'assets.json'
 }, {
-  useMiniCssExtractPlugin : true,
+  useMiniCssExtractPlugin : true
 })
 ```
 
 webpack.server.config.js
 
-```
+```js
 import { serverConfiguration } from 'universal-webpack'
 const webpackConfig = {...}
 
 return serverConfiguration(webpackConfig, {
-  // 生成的配置默认第三方模块都不打包，这里配置不支持commonjs的第三方模块
-	excludeFromExternals:
-	[
-		'lodash-es',
-		/^some-other-es6-only-module(\/.*)?$/
-	],
+  // 默认第三方模块都不打包，这里需要配置不支持commonjs的第三方模块
+  excludeFromExternals: [
+    'lodash-es',
+    /^some-other-es6-only-module(\/.*)?$/
+  ],
 
   // 这里配置不需要重复打包的文件
-	loadExternalModuleFileExtensions:
-	[
-		'css',
-		'png',
-		'jpg',
-		'svg',
-		'xml'
-	],
+  loadExternalModuleFileExtensions: [
+    'css',
+    'png',
+    'jpg',
+    'svg',
+    'xml'
+  ]
 })
-```
-
-assets.json
-
-```
-interface Chunks {
-    javascript: {
-        [scriptname: string]: string;
-    };
-    styles: {
-        [scriptname: string]: string;
-    };
-}
 ```
 
 改造 server/index.js
 
-```
-const assets = require('../assets.json')
-const js = Object.values(assets.javascript).map(item => <link rel="stylesheet" href="${item}"></link>).join('\n')
-const css = Object.values(assets.styles).map(item => `<script src="${item}"></script>`).join('\n')
+```js
+const assets = require("../assets.json");
+const js = Object.values(assets.javascript)
+  .map(item => <link rel="stylesheet" href="${item}" />)
+  .join("\n");
+const css = Object.values(assets.styles)
+  .map(item => `<script src="${item}"></script>`)
+  .join("\n");
 
 const html = mixin(template, {
   js,
   css,
-  serverContent,
-})
+  serverContent
+});
 ```
 
-## 路由
+## 路由处理
 
-接下来我们进行路由改造，react-router 提供了 StaticRouter 组件，可以用于在服务端渲染，它依赖我们传入的 url 来定位
+我们需要在服务端根据请求的 url 渲染对应的组件，这里和客户端稍微有一些不太一样。react-router 提供了 StaticRouter 组件用于服务端渲染，我们可以手动传入请求的的 url 来进行路由定位。
+
+server/index.js
+
+```js
+app.get("/", (req, res, next) => {
+  ...
+  // @override
+  // const serverContent = renderToString(<App/>)
+  const url = req.url; // "/home"
+  const serverContent = renderToString(<App url={url} />);
+  ...
+});
+```
 
 server/App.jsx
 
-```
+```js
 import React from 'react'
 import { StaticRouter, Switch, Route } from 'react-router-dom'
 import routes from './router.js'
@@ -240,62 +259,58 @@ export default App(props)  => {
 }
 ```
 
-server/index.js
+## 数据获取
 
-```
- // relpace
- // const serverContent = renderToString(<App/>)
- const serverContent = renderToString(<App url={req.url}/>)
-```
+我们一般在 componentDidMount 生命周期执行获取数据的方法，但是在服务端环境中生命周期是不完整的，只会执行 ComponentWillMount 之前的方法，所以我们必须在渲染前准备好数据，然后通过 props 注入到组件中。
 
-## 数据
-
-在服务端我们可以通过 props 向组件中注入数据
-
-我们一般在 componentDidMount 生命周期执行获取数据的方法，但是在服务端环境中生命周期是不完整的，只会执行 ComponentWillMount 之前的方法，所以我们必须在渲染前准备好数据，
-react-router 提供了路由组件判断匹配的方法 matchPath, 根据 match 的组件获取相应的数据,以 Home 组件为例。
+这里我们为路由组件定义了一个 loadData 的钩子函数，通过 react-router 提供的 matchPath 方法，可以判断当前需要渲染的页面组件，并执行相应的 loadData 方法获取数据，该方法返回一个 Promise 对象，以便我们在数据获取成功后异步执行渲染逻辑。
 
 server/router.js
 
-```
- // 这里可以通过客户端路由文件改造, 注入loadData方法即可
- const routes = {
-   path:'/',
-   component: Home,
-   loadData: () => getSomeData()
- }
+```js
+// 这里可以通过客户端路由文件改造, 添加需要的loadData方法即可
+const routes = {
+  path: "/",
+  component: Home,
+  //  return a Promise
+  loadData: () => getSomeData()
+};
 ```
 
 server/index.js
 
-```
+```js
 import { matchPath } from 'react-router-dom'
 
-const promise = Promise.resolve()
-routes.find(route => {
-  const match = matchPath(req.path, route)
-  if(match) promises.then(route.loadData)
-  return match
-})
-promise.then((data) => {
-    const serverData = formatData(data)
-    // relpace serverContent
-    const serverContent = renderToString(<App url={req.url} data={serverData}/>)
-    ...
-    res.send(html)
-  }
+app.get('/', (req, res, next) => {
+  ...
+  const promise = Promise.resolve()
+  routes.find(route => {
+    const match = matchPath(req.url, route)
+    if(match) promise.then(route.loadData)
+    return match
+  })
+  promise.then((data) => {
+      const serverData = formatData(data)
+      // @override
+      // const serverContent = renderToString(<App url={url} />);
+      const serverContent = renderToString(<App url={req.url} data={serverData}/>)
+      const html = mixin(template, {js, css, serverContent})
+      res.send(html)
+  })
 })
 ```
 
 server/App.jsx
 
-```
+```js
  export default App(props)  => {
   <StaticRouter location={props.url} context={{}}>
      <Switch>
        {routes.map((route) => {
          <Route {...route} render={() => {
-           <route.component data={props.data}/>
+           const Component = route.component
+           <Component data={props.data}/>
          }}/>
        })}
      </Swtich>
@@ -309,7 +324,7 @@ server/App.jsx
 
 server/App.jsx
 
-```
+```js
  export default App(props)  => {
    <Provider store={props.store}>
     <StaticRouter location={props.url} context={{}}>
@@ -325,26 +340,30 @@ server/App.jsx
 
 server/index.js
 
-```
+```js
+...
 promise.then((data) => {
-    const preloadedState = mixin(initData, data)
-    const store = createStore(reducers, preloadedState)
-    // relpace serverContent
-    const serverContent = renderToString(<App url={req.url} stote={store}/>)
   ...
-}
+  const preloadedState = mixin(initData, data)
+  const store = createStore(reducers, preloadedState)
+  // @override
+  // const serverContent = renderToString(<App url={req.url} data={serverData}/>)
+  const serverContent = renderToString(<App url={req.url} store={store}/>)
+  ...
 })
+...
 ```
 
-### 客户端同步数据
+### 客户端数据同步
 
-至此为止，服务器端最终会输出一个带有数据状态的完整页面。但是客户端这边重新渲染的时候，首先会渲染一个没有数据的框架，然后才会在 componentDidMount 里发起数据接口请求数据，这意味着在这之前客户端都为空数据状态，在用户看来就是表现为会执行重复 loading 。所以我们希望客户端可以共享服务端已经获取的数据，解决办法是我们会在服务端将数据注入到 HTML 中返回给客户端**脱水**(Dehydrate)。在浏览器端，客户端不再自己发起请求获取数据处理状态，直接使用这个脱水数据来初始化 React 组件**注水** (Hydrate)
+至此为止，服务器端最终会输出一个带有数据状态的完整页面。但是客户端这边重新渲染的时候，首先会渲染一个没有数据的框架，然后才会在 componentDidMount 里发起数据接口请求数据，这意味着在这个过程期间客户端都为空数据状态，在用户看来就是表现为会执行重复地 loading 。
 
-![image](https://user-gold-cdn.xitu.io/2019/2/27/1692e44759620877?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+所以我们希望客户端可以共享服务端已经获取的数据，我的解决办法是在服务端将数据注入到 HTML 中返回给客户端**脱水**(Dehydrate)。在浏览器端，客户端不再自己发起请求获取数据处理状态，直接使用脱水数据来初始化 React 组件**注水** (Hydrate)
 
+![image](https://durianicecream.github.io/TBlog/3.%20React%20SSR%20%E5%AE%9E%E8%B7%B5%E6%80%BB%E7%BB%93/images/hydrate.jpg)
 HTML 模板
 
-```
+```html
     ...
     </div>
     <script type="text/javascript" src="/bundle_[hash].js"></script>
@@ -354,26 +373,30 @@ HTML 模板
 
 server/index.js
 
-```
-  // replace
+```js
+  // @override
   // const html = mixin(template, {js, css, serverContent})
-  // const html = mixin(template, {js, css, serverContent, store})
+  const html = mixin(template, {js, css, serverContent, store})
 })
 ```
 
+客户端初始化数据
+
 store.js
 
-```
-  const defaultState = JSON.parse(window.__initState__)
-  const store = createStore(reducer, defaultState)
+```js
+const defaultState = JSON.parse(window.__initState__);
+const store = createStore(reducer, defaultState);
 ```
 
 ## 注意事项
 
-1. 服务端执行环境没有 window 和 document 等宿主对象，且会执行组件的 constructor，componentWillReceiveProps，render 生命周期，所以务必避免代码中的此类调用。可以通过 type window 或 webpack.definePlugin 来对客户端和服务端做区分
+1. 服务端执行环境没有 `window` 和 `document` 等宿主对象，且会执行组件的 `constructor`，`componentWillReceiveProps`，`render` 生命周期，所以务必避免代码中的此类调用。可以通过 `typeof window` 或 `webpack.definePlugin` 来对客户端和服务端做区分
 
-## 待商讨&&完善
+## 继续探索
 
-按需加载
+- 按需加载
 
-HMR
+- HMR
+
+- 服务端性能监控&&调优
