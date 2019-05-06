@@ -22,7 +22,7 @@ SSR 技术随之应运而生，SSR 全称 Server Side Rendering 。以 React 为
 
 ![image](https://durianicecream.github.io/TBlog/3.%20React%20SSR%20%E5%AE%9E%E8%B7%B5%E6%80%BB%E7%BB%93/images/sequence.jpg)
 
-### 核心 API：
+### 核心 API
 
 服务端： renderToString() | ReactDOMServer.renderToNodeStream()
 
@@ -109,13 +109,14 @@ server/index.js
 
 ```js
 import React from 'react'
-import renderToString from 'reactDOM/server'
+import { renderToString } from 'reactDOM/server'
 import express from 'express'
 import App from './App'
 const app = express()
 
 app.get('/', (req, res, next) => {
   const serverContent = renderToString(<App/>)
+  // mixin是一个渲染函数，我们
   const html = mixin(template,serverContent)
   res.send(html)
 })
@@ -150,7 +151,7 @@ startServer();
 
 ## 静态资源
 
-接下来我们处理静态资源。生产环境的 js bundle 和 css file 都将会附带哈希值，如果按照现在这样简单地在服务端模板内引入`"/bundle.js"`是找不到文件的，正确的引入路径应该是`"/bundle_[hash].js"`。那么下面我们来套路如何处理哈希同步的问题，其次图片资源我们也希望不要重复生成两份哈希。
+接下来我们处理静态资源。生产环境的 js bundle 和 css file 都将会附带哈希值，如果按照现在这样简单地在服务端模板内引入`"/bundle.js"`是找不到文件的，正确的引入路径应该是`"/bundle_[hash].js"`。那么下面我们来讨论如何处理哈希同步的问题，其次图片资源我们也不希望在两次打包的时候生成不同的哈希。
 
 这里推荐使用 universal-webpack， 它通过帮我们修改 webpack 配置的方式，帮我们解决上述的问题。插件在打包时会在 build 目录下生成 assets.json 资源定位文件，服务端我们引入这个文件处理即可。
 
