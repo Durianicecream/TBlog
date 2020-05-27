@@ -67,7 +67,6 @@ SSR Project
 |  └webpack.server.config.js
 ├─server  //服务端代码
 |  ├─App.jsx
-|  ├─router.js
 |  └index.js
 ├─src  //客户端代码
 |  ├─pages
@@ -75,7 +74,7 @@ SSR Project
 |  ├─router.js
 |  └index.js
 ├─index.html
-├─server.js  //服务端入口文件
+├─start-server.js  //服务端入口文件
 ├─package.json
 ```
 
@@ -112,27 +111,29 @@ import React from 'react'
 import { renderToString } from 'reactDOM/server'
 import express from 'express'
 import App from './App'
+import fs from 'fs'
 const app = express()
 
 app.get('/', (req, res, next) => {
-  const serverContent = renderToString(<App/>)
-  // mixin是一个渲染函数，我们
-  const html = mixin(template,serverContent)
+  const template = fs.readFileSync('index.html')
+  const serverContent = renderToString(<App />)
+  // mixin是一个渲染函数，将内容注入到模板中
+  const html = mixin(template, serverContent)
   res.send(html)
 })
 
 // 导出启动服务的函数供入口文件调用
-export default startServer() => {
+export default function startServer() {
   app.listen('3000')
   return app
 }
 ```
 
-server.js
+start-server.js
 
 ```js
-var startServer = require("./build/server/index.js");
-startServer();
+var startServer = require('./build/server/index.js')
+startServer()
 ```
 
 接下来我们要修改 webpack.server.config.js, 将 server 端代码编译成可以被 commonjs 模块系统识别的代码
@@ -141,8 +142,18 @@ startServer();
 {
   ...
   input: path.resolve(__dirname, '..', 'server/index.js'),
-  output: path.resolve(__dirname, '..', 'build/server,'),
+  output:  {
+    path.resolve(__dirname, '..', 'build/server'),
+    libraryTarget: 'commonjs2', // 使用module.exports导出
+		filename: 'server.js',
+  },
   target: 'node',
+  plugins: [
+    ...,
+    new webpack.optimize.LimitChunkCountPlugin({
+			maxChunks: 1
+		}), // 限制最大chunk数
+  ]
   ...
 }
 ```
@@ -151,78 +162,55 @@ startServer();
 
 ## 静态资源
 
-接下来我们处理静态资源。生产环境的 js bundle 和 css file 都将会附带哈希值，如果按照现在这样简单地在服务端模板内引入`"/bundle.js"`是找不到文件的，正确的引入路径应该是`"/bundle_[hash].js"`。那么下面我们来讨论如何处理哈希同步的问题，其次图片资源我们也不希望在两次打包的时候生成不同的哈希。
+接下来我们处理静态资源。生产环境的 js bundle 和 css file 都将会附带哈希值，如果按照现在这样简单地在服务端模板内引入`"/bundle.js"`是找不到文件的，正确的引入路径应该是`"/bundle_[hash].js"`。那么下面我们来讨论如何处理哈希同步的问题。
 
-这里推荐使用 universal-webpack， 它通过帮我们修改 webpack 配置的方式，帮我们解决上述的问题。插件在打包时会在 build 目录下生成 assets.json 资源定位文件，服务端我们引入这个文件处理即可。
+我这里使用的是 assets-webpack-plugin , 该插件在客户端打包时会在 build 目录下生成 assets.json 资源定位文件，服务端我们引入这个文件处理即可。
 
-[详细项目文档](https://github.com/catamphetamine/universal-webpack)
+[详细项目文档](https://github.com/ztoben/assets-webpack-plugin)
 
 assets.json
 
 ```ts
 interface Chunks {
-  javascript: {
-    [scriptname: string]: string;
-  };
-  styles: {
-    [scriptname: string]: string;
-  };
+  main: {
+    css: string[]
+    js: string[]
+    [assetsName: string]: string[]
+  }
 }
 ```
 
 webpack.client.config.js
 
 ```js
-import { clientConfiguration } from 'universal-webpack'
-const webpackConfig = {...}
-
-return clientConfiguration(webpackConfig, {
-    chunk_info_filename: 'assets.json'
-}, {
-  useMiniCssExtractPlugin : true
-})
-```
-
-webpack.server.config.js
-
-```js
-import { serverConfiguration } from 'universal-webpack'
-const webpackConfig = {...}
-
-return serverConfiguration(webpackConfig, {
-  // 默认第三方模块都不打包，这里需要配置不支持commonjs的第三方模块
-  excludeFromExternals: [
-    'lodash-es',
-    /^some-other-es6-only-module(\/.*)?$/
-  ],
-
-  // 这里配置不需要重复打包的文件
-  loadExternalModuleFileExtensions: [
-    'css',
-    'png',
-    'jpg',
-    'svg',
-    'xml'
+{
+  ...
+  plugins: [
+    ...,
+		new AssetsPlugin({
+			path: path.resolve(basePath, 'build'),
+			entrypoints: true // 将所有的输出都收敛在统一的入口中
+		}),
   ]
-})
+}
 ```
 
 改造 server/index.js
 
 ```js
-const assets = require("../assets.json");
+const assets = require('../assets.json')
 const js = Object.values(assets.javascript)
-  .map(item => <link rel="stylesheet" href="${item}" />)
-  .join("\n");
+  .map((item) => `<link rel="stylesheet" href="${item}" />`)
+  .join('\n')
 const css = Object.values(assets.styles)
-  .map(item => `<script src="${item}"></script>`)
-  .join("\n");
+  .map((item) => `<script src="${item}"></script>`)
+  .join('\n')
 
 const html = mixin(template, {
   js,
   css,
-  serverContent
-});
+  serverContent,
+})
 ```
 
 ## 路由处理
@@ -247,7 +235,7 @@ server/App.jsx
 ```js
 import React from 'react'
 import { StaticRouter, Switch, Route } from 'react-router-dom'
-import routes from './router.js'
+import routes from '@/router'
 
 export default App(props)  => {
   <StaticRouter location={props.url} context={{}}>
@@ -266,17 +254,24 @@ export default App(props)  => {
 
 这里我们为路由组件定义了一个 loadData 的钩子函数，通过 react-router 提供的 matchPath 方法，可以判断当前需要渲染的页面组件，并执行相应的 loadData 方法获取数据，该方法返回一个 Promise 对象，以便我们在数据获取成功后异步执行渲染逻辑。
 
-server/router.js
+router.js
 
 ```js
 // 这里可以通过客户端路由文件改造, 添加需要的loadData方法即可
-const routes = {
-  path: "/",
-  component: Home,
-  //  return a Promise
-  loadData: () => getSomeData()
-};
+const routes = [
+  ...,
+  {
+    path: '/',
+    component: Home,
+    //  return a Promise
+    loadData: () => fetchData(),
+  },
+]
 ```
+
+另外一种常用的做法是将获取数据的方法定义在组件的静态方法中, 原理类似，不过都是不支持定义子组件的，必须挂载在路由上才可以正确执行loadData方法
+
+需要注意的是这里 fetchData 方法, 需要同时支持在 node 端和浏览器端执行，这里使用的是 [isomorphic-fetch](https://github.com/matthew-andrews/isomorphic-fetch)
 
 server/index.js
 
@@ -306,13 +301,10 @@ server/App.jsx
 
 ```js
  export default App(props)  => {
-  <StaticRouter location={props.url} context={{}}>
+  <StaticRouter location={props.url} context={props.data}>
      <Switch>
        {routes.map((route) => {
-         <Route {...route} render={() => {
-           const Component = route.component
-           <Component data={props.data}/>
-         }}/>
+         <Route component={Component}/>
        })}
      </Swtich>
   </StaticRouter>
@@ -321,14 +313,14 @@ server/App.jsx
 
 ### 使用 Redux
 
-如果使用 redux 管理同构的数据则会方便许多，这里注意每一个请求都需要重新生成一个新的 store，否则的话用户状态则会混乱。
+如果使用 redux 管理同构的数据则会方便许多，这里注意每一个请求都需要重新生成一个新的 store 实例，否则的话用户状态则会混乱。
 
 server/App.jsx
 
 ```js
  export default App(props)  => {
    <Provider store={props.store}>
-    <StaticRouter location={props.url} context={{}}>
+    <StaticRouter location={props.url}>
       <Switch>
         {routes.map((route) => {
           <Route {...route} />
@@ -386,8 +378,65 @@ server/index.js
 store.js
 
 ```js
-const defaultState = JSON.parse(window.__initState__);
-const store = createStore(reducer, defaultState);
+const defaultState = JSON.parse(window.__initState__)
+const store = createStore(reducer, defaultState)
+```
+
+如何避免再次发送请求
+
+如果你的数据是由 redux 接管的, 那么只需要在 action 里面增加缓存判断的逻辑即可
+
+如果远程数据是由组件内部 state 维护的，那么需要将这部分数据提取出来由外部接管, 我们可以实现一个高阶组件将服务端数据注入
+
+```js
+function withServerData(Component, fetchData) {
+  return class InjectServerData extends React.Component {
+    constructor() {
+      super()
+      this.state = {}
+      const isServerEnv = typeof window === 'undefined'
+      if (isServerEnv) {
+        this.state.data = this.props.staticContext
+      } else {
+        const key = Component.displayName
+        const serverData = window.__INITIAL_STATE__
+        if (serverData && serverData[key]) {
+          this.state.data = serverData[key]
+        }
+      }
+    }
+
+    // 只有客户端环境会执行
+    componentDidMount() {
+      if (!this.state.data) {
+        fetchData().then((data) => {
+          this.setData({ data })
+        })
+      }
+    }
+
+    render() {
+      return <Component {...this.props} data={this.state.data} />
+    }
+  }
+}
+```
+
+相应的服务端也需要将数据改造成 key-value 的形式
+
+router.js
+
+```js
+const fetchData = () => fetchData().then(data) => ({ [Home.displayName]: data })
+const routes = [
+  ...,
+  {
+    path: '/',
+    component: withServerData(Home, fetchData),
+    //  return a Promise
+    loadData: fetchData,
+  },
+]
 ```
 
 ## 注意事项
