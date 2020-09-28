@@ -331,8 +331,6 @@ if (!window.IntersectionObserver) {
 
 推荐一个库`react-flip-move`, 快速实现动态列表插入、删除、排序动画, 零配置接入, 代码入侵也很小, 推荐使用。
 
-### 默认配置
-
 
 ## 规划
 
