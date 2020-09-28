@@ -6,13 +6,13 @@
 
 **产品演示图**
 
-![截图](./images/intro.gif)
+![截图](https://durianicecream.github.io/TBlog/5.%20%E5%8F%AF%E8%A7%86%E5%8C%96%E9%A1%B5%E9%9D%A2%E7%BC%96%E8%BE%91%E5%99%A8%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/images/intro.gif)
 
 ## 需求分析
 
 前期的准备工作还是比较重要的, 尤其是前端项目, 如果整个项目搭建好之后发现某个功能交互逻辑实现起来异常困难, 工作量大概率要成倍增加。哎，就不多说了，懂得都懂。
 
-![原型](./images/sketch.png)
+![原型](https://durianicecream.github.io/TBlog/5.%20%E5%8F%AF%E8%A7%86%E5%8C%96%E9%A1%B5%E9%9D%A2%E7%BC%96%E8%BE%91%E5%99%A8%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/images/sketch.png)
 
 1. 物料区, 目前支持 5 种组件, 要求可复用, 可支持扩展
 2. 可视化拖拽, 物料区拖拽至预览区, 预览区页面内部拖拽排序,
